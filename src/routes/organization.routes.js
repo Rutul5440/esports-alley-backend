@@ -7,6 +7,7 @@ const {
   recruiterDashboard,
   savePlayer,
   getSavedPlayers,
+  scouting,
   verifyOrganization,
 } = require("../controllers/organization.controller");
 const { protect } = require("../middlewares/auth.middleware");
@@ -27,6 +28,12 @@ router.put(
   restrictTo("organization"),
   upload.single("logo"),
   updateOrganization
+);
+router.get(
+  "/scouting",
+  protect,
+  restrictTo("organization"),
+  scouting
 );
 router.get(
   "/dashboard/players",

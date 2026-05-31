@@ -8,7 +8,7 @@ const fileFilter = (req, file, cb) => {
     if (!file.mimetype.startsWith("video/")) {
       return cb(new ApiError(400, "Only video files allowed for clips."), false);
     }
-  } else if (file.fieldname === "thumbnail" || file.fieldname === "avatar") {
+  } else if (["thumbnail", "avatar", "banner", "bannerImage", "logo"].includes(file.fieldname)) {
     if (!file.mimetype.startsWith("image/")) {
       return cb(new ApiError(400, "Only image files allowed."), false);
     }

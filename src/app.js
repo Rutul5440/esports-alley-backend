@@ -12,6 +12,16 @@ const profileRoutes = require("./routes/profile.routes");
 const clipRoutes = require("./routes/clip.routes");
 const achievementRoutes = require("./routes/achievement.routes");
 const organizationRoutes = require("./routes/organization.routes");
+const feedRoutes = require("./routes/feed.routes");
+const postRoutes = require("./routes/post.routes");
+const communityRoutes = require("./routes/community.routes");
+const scrimRoutes = require("./routes/scrim.routes");
+const clubRoutes = require("./routes/club.routes");
+const notificationRoutes = require("./routes/notification.routes");
+const scoutingRoutes = require("./routes/scouting.routes");
+const gameRoutes = require("./routes/game.routes");
+const leaderboardRoutes = require("./routes/leaderboard.routes");
+const searchRoutes = require("./routes/search.routes");
 
 const app = express();
 
@@ -23,7 +33,7 @@ app.use(morgan("dev"));
 // --- Rate Limiting ---
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: process.env.NODE_ENV === "development" ? 10000 : 100, // high threshold for dev/active testing
   message: "Too many requests, please try again later.",
 });
 app.use("/api", limiter);
@@ -38,10 +48,20 @@ app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/clips", clipRoutes);
 app.use("/api/v1/achievements", achievementRoutes);
 app.use("/api/v1/organizations", organizationRoutes);
+app.use("/api/v1/feed", feedRoutes);
+app.use("/api/v1/posts", postRoutes);
+app.use("/api/v1/community", communityRoutes);
+app.use("/api/v1/clubs", clubRoutes);
+app.use("/api/v1/scrims", scrimRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/scouting", scoutingRoutes);
+app.use("/api/v1/games", gameRoutes);
+app.use("/api/v1/leaderboard", leaderboardRoutes);
+app.use("/api/v1/search", searchRoutes);
 
 // --- Root and Health Endpoints ---
 app.get("/", (req, res) => {
-  res.json({ message: "BGMI Platform backend is running", status: "OK" });
+  res.json({ message: "ConqLink Platform backend is running", status: "OK" });
 });
 
 app.get("/health", (req, res) => {

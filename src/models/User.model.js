@@ -1,8 +1,23 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
+const GAME_IDS = ["bgmi", "valorant", "cs2", "free-fire", "apex-legends", "pubg-ns"];
+const RANKS = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Crown", "Ace", "Ace Master", "Conqueror"];
+const PLAY_STYLES = ["Aggressive", "Passive", "Balanced"];
+
 const userSchema = new mongoose.Schema(
   {
+    fullName: {
+      type: String,
+      trim: true,
+      maxlength: 80,
+    },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: 300,
+      default: "",
+    },
     username: {
       type: String,
       required: true,
@@ -17,6 +32,7 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
+      trim: true,
     },
     password: {
       type: String,
@@ -32,6 +48,43 @@ const userSchema = new mongoose.Schema(
     avatar: {
       type: String,
       default: "",
+    },
+    bannerImage: {
+      type: String,
+      default: "",
+    },
+    country: {
+      type: String,
+      trim: true,
+    },
+    dateOfBirth: {
+      type: Date,
+    },
+    gamePreferences: [
+      {
+        game: { type: String, enum: GAME_IDS },
+        rank: { type: String, enum: RANKS },
+        kd: { type: Number, default: 0, min: 0 },
+        winRate: { type: Number, default: 0, min: 0, max: 100 },
+        avgDamage: { type: Number, default: 0, min: 0 },
+        totalMatches: { type: Number, default: 0, min: 0 },
+      },
+    ],
+    playStyle: {
+      type: String,
+      enum: PLAY_STYLES,
+    },
+    languages: [{ type: String, trim: true }],
+    openToTeam: {
+      type: Boolean,
+      default: false,
+    },
+    savedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],
+    clubs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Club" }],
+    notifications: [{ type: mongoose.Schema.Types.ObjectId, ref: "Notification" }],
+    profileCompleted: {
+      type: Boolean,
+      default: false,
     },
     isVerified: {
       type: Boolean,

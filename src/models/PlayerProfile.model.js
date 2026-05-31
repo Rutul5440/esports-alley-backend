@@ -1,5 +1,11 @@
 const mongoose = require("mongoose");
 
+const GAME_IDS = ["bgmi", "valorant", "cs2", "free-fire", "apex-legends", "pubg-ns"];
+const PLAYER_ROLES = ["IGL", "Assaulter", "Support", "Scout", "Sniper", "Filter", "Fragger", "All-rounder"];
+const SCRIM_LEVELS = ["Rookie", "Contender", "Elite", "Master", "Conqueror"];
+const RANKS = ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Crown", "Ace", "Ace Master", "Conqueror"];
+const PLAY_STYLES = ["Aggressive", "Passive", "Balanced"];
+
 const playerProfileSchema = new mongoose.Schema(
   {
     user: {
@@ -11,6 +17,7 @@ const playerProfileSchema = new mongoose.Schema(
     displayName: { type: String, required: true },
     bio: { type: String, maxlength: 300 },
     country: { type: String },
+    bannerImage: { type: String, default: "" },
     bgmiUID: { type: String, unique: true, sparse: true },
 
     // In-game stats
@@ -31,8 +38,39 @@ const playerProfileSchema = new mongoose.Schema(
     // Player's in-game role
     role: {
       type: String,
-      enum: ["IGL", "Fragger", "Support", "Scout", "Sniper", "All-rounder"],
+      enum: PLAYER_ROLES,
     },
+    gameStats: [
+      {
+        game: { type: String, enum: GAME_IDS, required: true },
+        rank: { type: String, enum: RANKS, default: "Bronze" },
+        kd: { type: Number, default: 0, min: 0 },
+        winRate: { type: Number, default: 0, min: 0, max: 100 },
+        avgDamage: { type: Number, default: 0, min: 0 },
+        totalMatches: { type: Number, default: 0, min: 0 },
+        totalWins: { type: Number, default: 0, min: 0 },
+      },
+    ],
+    roles: [{ type: String, enum: PLAYER_ROLES }],
+    playStyle: { type: String, enum: PLAY_STYLES },
+    languages: [{ type: String, trim: true }],
+    preferredGames: {
+      type: [{ type: String, enum: GAME_IDS }],
+      default: ["bgmi"],
+    },
+    badges: [{ type: String, enum: SCRIM_LEVELS }],
+    scrimBadges: [
+      {
+        scrimId: { type: mongoose.Schema.Types.ObjectId, ref: "ScrimEvent" },
+        tier: { type: Number, min: 1, max: 5 },
+        tierName: { type: String },
+        earnedAt: { type: Date, default: Date.now },
+      },
+    ],
+    skillScore: { type: Number, default: 0, min: 0, max: 100 },
+    profileViews: { type: Number, default: 0, min: 0 },
+    isOpenToTeam: { type: Boolean, default: true },
+    openToTeam: { type: Boolean, default: true },
 
     // Preferred game mode
     preferredMode: {
@@ -58,6 +96,7 @@ const playerProfileSchema = new mongoose.Schema(
 );
 
 // Index for search performance
-playerProfileSchema.index({ "stats.rank": 1, role: 1, country: 1 });
+playerProfileSchema.index({ "stats.rank": 1, role: 1, roles: 1, country: 1 });
+playerProfileSchema.index({ preferredGames: 1, isOpenToTeam: 1, skillScore: -1, profileViews: -1 });
 
 module.exports = mongoose.model("PlayerProfile", playerProfileSchema);

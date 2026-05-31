@@ -7,12 +7,26 @@ const ApiError = require("../utils/ApiError");
 const asyncHandler = require("../utils/asyncHandler");
 const Joi = require("joi");
 
+const playerRoles = ["IGL", "Assaulter", "Support", "Scout", "Sniper", "Filter", "Fragger", "All-rounder"];
+const gameIds = ["bgmi", "valorant", "cs2", "free-fire", "apex-legends", "pubg-ns"];
+
 // Validation
 const orgSchema = Joi.object({
   name: Joi.string().min(2).max(100).required(),
   description: Joi.string().max(500).optional(),
+  bannerImage: Joi.string().allow("").optional(),
+  orgType: Joi.string().valid("Esports Team", "Gaming Company", "Content Studio", "Tournament Organizer", "Sponsor").optional(),
+  foundedYear: Joi.number().min(1950).max(new Date().getFullYear()).optional(),
   website: Joi.string().uri().optional().allow(""),
   country: Joi.string().optional(),
+  activeGames: Joi.array().items(Joi.string().valid(...gameIds)).optional(),
+  openRoles: Joi.array().items(Joi.string().valid(...playerRoles)).optional(),
+  socialLinks: Joi.object({
+    twitter: Joi.string().allow("").optional(),
+    youtube: Joi.string().allow("").optional(),
+    instagram: Joi.string().allow("").optional(),
+  }).optional(),
+  recruitmentRegions: Joi.array().items(Joi.string()).optional(),
   recruitmentCriteria: Joi.object({
     minRank: Joi.string()
       .valid(
@@ -22,9 +36,7 @@ const orgSchema = Joi.object({
       .optional(),
     roles: Joi.array()
       .items(
-        Joi.string().valid(
-          "IGL","Fragger","Support","Scout","Sniper","All-rounder"
-        )
+        Joi.string().valid(...playerRoles)
       )
       .optional(),
     minKD: Joi.number().min(0).optional(),
@@ -129,7 +141,7 @@ const recruiterDashboard = asyncHandler(async (req, res) => {
     filter["stats.rank"] = { $in: eligibleRanks };
   }
 
-  if (roles?.length) filter.role = { $in: roles };
+  if (roles?.length) filter.$or = [{ role: { $in: roles } }, { roles: { $in: roles } }];
   if (minKD) filter["stats.kd"] = { $gte: minKD };
 
   const players = await PlayerProfile.find(filter)
@@ -137,7 +149,7 @@ const recruiterDashboard = asyncHandler(async (req, res) => {
     .select("displayName stats role country bgmiUID isOpenToRecruit")
     .skip((page - 1) * limit)
     .limit(parseInt(limit))
-    .sort({ "stats.kd": -1 });
+    .sort({ skillScore: -1, profileViews: -1, "stats.kd": -1 });
 
   const total = await PlayerProfile.countDocuments(filter);
 
@@ -156,6 +168,52 @@ const recruiterDashboard = asyncHandler(async (req, res) => {
   );
 });
 
+// GET /api/v1/organizations/scouting
+const scouting = asyncHandler(async (req, res) => {
+  const {
+    game,
+    rank,
+    role,
+    country,
+    availability,
+    minSkill,
+    page = 1,
+    limit = 20,
+  } = req.query;
+
+  const parsedLimit = Math.min(parseInt(limit), 50);
+  const filter = {};
+
+  if (game) filter.preferredGames = game;
+  if (rank) filter["stats.rank"] = rank;
+  if (role) filter.$or = [{ role }, { roles: role }];
+  if (country) filter.country = country;
+  if (availability === "open") {
+    filter.$and = [
+      ...(filter.$and || []),
+      { $or: [{ isOpenToTeam: true }, { isOpenToRecruit: true }] },
+    ];
+  }
+  if (minSkill) filter.skillScore = { $gte: parseFloat(minSkill) };
+
+  const players = await PlayerProfile.find(filter)
+    .populate("user", "username avatar email followers")
+    .select("-clips")
+    .skip((parseInt(page) - 1) * parsedLimit)
+    .limit(parsedLimit)
+    .sort({ skillScore: -1, profileViews: -1, "stats.kd": -1 });
+
+  const total = await PlayerProfile.countDocuments(filter);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { players, total, page: parseInt(page), pages: Math.ceil(total / parsedLimit) },
+      "Scouting players fetched"
+    )
+  );
+});
+
 // POST /api/v1/organizations/save-player/:playerId — Bookmark a player
 const savePlayer = asyncHandler(async (req, res) => {
   const org = await Organization.findOne({ owner: req.user._id });
@@ -164,18 +222,19 @@ const savePlayer = asyncHandler(async (req, res) => {
   const targetUser = await User.findById(req.params.playerId);
   if (!targetUser) throw new ApiError(404, "Player not found.");
 
-  const alreadySaved = org.savedPlayers.includes(req.params.playerId);
-  const update = alreadySaved
-    ? { $pull: { savedPlayers: req.params.playerId } }
-    : { $push: { savedPlayers: req.params.playerId } };
-
-  await org.updateOne(update);
+  const saved = org.savedPlayers.find((item) => item.playerId?.equals(req.params.playerId));
+  if (saved) {
+    org.savedPlayers.pull(saved._id);
+  } else {
+    org.savedPlayers.push({ playerId: targetUser._id, notes: req.body.notes || "" });
+  }
+  await org.save();
 
   return res.status(200).json(
     new ApiResponse(
       200,
       null,
-      alreadySaved ? "Player removed from saved list" : "Player saved"
+      saved ? "Player removed from saved list" : "Player saved"
     )
   );
 });
@@ -183,7 +242,7 @@ const savePlayer = asyncHandler(async (req, res) => {
 // GET /api/v1/organizations/saved-players — View all bookmarked players
 const getSavedPlayers = asyncHandler(async (req, res) => {
   const org = await Organization.findOne({ owner: req.user._id }).populate({
-    path: "savedPlayers",
+    path: "savedPlayers.playerId",
     select: "username avatar email",
   });
   if (!org) throw new ApiError(404, "Organization not found.");
@@ -214,5 +273,6 @@ module.exports = {
   recruiterDashboard,
   savePlayer,
   getSavedPlayers,
+  scouting,
   verifyOrganization,
 };

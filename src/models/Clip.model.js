@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+const GAME_IDS = ["bgmi", "valorant", "cs2", "free-fire", "apex-legends", "pubg-ns"];
+
 const clipSchema = new mongoose.Schema(
   {
     uploader: {
@@ -12,6 +14,7 @@ const clipSchema = new mongoose.Schema(
     videoUrl: { type: String, required: true },   // Cloudinary URL
     thumbnailUrl: { type: String },
     duration: { type: Number },                    // seconds
+    game: { type: String, enum: GAME_IDS, default: "bgmi" },
     tags: [{ type: String }],                      // e.g., ["clutch", "snipe", "BGMI"]
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     comments: [
