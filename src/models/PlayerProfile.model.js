@@ -38,12 +38,11 @@ const playerProfileSchema = new mongoose.Schema(
     // Player's in-game role
     role: {
       type: String,
-      enum: PLAYER_ROLES,
     },
     gameStats: [
       {
         game: { type: String, enum: GAME_IDS, required: true },
-        rank: { type: String, enum: RANKS, default: "Bronze" },
+        rank: { type: String, default: "Bronze" },
         kd: { type: Number, default: 0, min: 0 },
         winRate: { type: Number, default: 0, min: 0, max: 100 },
         avgDamage: { type: Number, default: 0, min: 0 },
@@ -51,7 +50,7 @@ const playerProfileSchema = new mongoose.Schema(
         totalWins: { type: Number, default: 0, min: 0 },
       },
     ],
-    roles: [{ type: String, enum: PLAYER_ROLES }],
+    roles: [{ type: String }],
     playStyle: { type: String, enum: PLAY_STYLES },
     languages: [{ type: String, trim: true }],
     preferredGames: {
