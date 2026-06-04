@@ -321,6 +321,34 @@ const deletePostComment = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, post.comments, "Comment deleted"));
 });
 
+const getSavedPosts = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  const parsedLimit = Math.min(parseInt(limit), 50);
+
+  const user = await User.findById(req.user._id).select("savedPosts");
+  const savedPostIds = user?.savedPosts || [];
+
+  const posts = await populatePost(Post.find({ _id: { $in: savedPostIds } }))
+    .sort({ createdAt: -1 })
+    .skip((parseInt(page) - 1) * parsedLimit)
+    .limit(parsedLimit);
+
+  const total = savedPostIds.length;
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        posts: posts.map((post) => formatPost(post, req.user._id)),
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / parsedLimit),
+      },
+      "Saved posts fetched"
+    )
+  );
+});
+
 const toggleSavePost = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id || req.params.postId);
   if (!post) throw new ApiError(404, "Post not found.");
@@ -369,6 +397,7 @@ module.exports = {
   updatePost,
   deletePost,
   getPostsByUser,
+  getSavedPosts,
   togglePostLike,
   addPostComment,
   togglePostCommentLike,

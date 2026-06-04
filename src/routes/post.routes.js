@@ -7,6 +7,7 @@ const {
   updatePost,
   deletePost,
   getPostsByUser,
+  getSavedPosts,
   togglePostLike,
   addPostComment,
   togglePostCommentLike,
@@ -19,6 +20,7 @@ const { protect } = require("../middlewares/auth.middleware");
 
 router.post("/", protect, createPost);
 router.get("/feed", protect, getFeed);
+router.get("/saved", protect, getSavedPosts);
 router.get("/user/:userId", protect, getPostsByUser);
 router.get("/:id", protect, getPost);
 router.put("/:id", protect, updatePost);
