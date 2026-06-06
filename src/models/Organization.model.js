@@ -32,17 +32,30 @@ const organizationSchema = new mongoose.Schema(
       type: [{ type: String, enum: GAME_IDS }],
       default: ["bgmi"],
     },
-    openRoles: [{ type: String, enum: PLAYER_ROLES }],
+    openRoles: [{ type: String }],
     followersCount: { type: Number, default: 0, min: 0 },
     profileViews: { type: Number, default: 0, min: 0 },
+
+    ownerOrgRole: {
+      type: String,
+      enum: ["Owner", "Manager", "Coach", "Recruiter", "Other"],
+      default: "Owner",
+    },
+    purposes: {
+      type: [String],
+      default: ["Recruiting Players"],
+    },
+    isRecruiting: {
+      type: Boolean,
+      default: true,
+    },
 
     // Players this org is looking for
     recruitmentCriteria: {
       minRank: {
         type: String,
-        enum: ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Crown", "Ace", "Ace Master", "Conqueror"],
       },
-      roles: [{ type: String, enum: PLAYER_ROLES }],
+      roles: [{ type: String }],
       minKD: { type: Number },
     },
 
@@ -57,6 +70,7 @@ const organizationSchema = new mongoose.Schema(
       twitter: { type: String },
       youtube: { type: String },
       instagram: { type: String },
+      discord: { type: String },
     },
     recruitmentRegions: [{ type: String, trim: true }],
     analytics: {

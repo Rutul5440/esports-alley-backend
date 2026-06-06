@@ -61,7 +61,7 @@ app.use("/api/v1/search", searchRoutes);
 
 // --- Root and Health Endpoints ---
 app.get("/", (req, res) => {
-  res.json({ message: "ConqLink Platform backend is running", status: "OK" });
+  res.json({ message: "Grid Lock Platform backend is running", status: "OK" });
 });
 
 app.get("/health", (req, res) => {

@@ -13,32 +13,27 @@ const gameIds = ["bgmi", "valorant", "cs2", "free-fire", "apex-legends", "pubg-n
 // Validation
 const orgSchema = Joi.object({
   name: Joi.string().min(2).max(100).required(),
-  description: Joi.string().max(500).optional(),
+  description: Joi.string().max(500).optional().allow(""),
   bannerImage: Joi.string().allow("").optional(),
-  orgType: Joi.string().valid("Esports Team", "Gaming Company", "Content Studio", "Tournament Organizer", "Sponsor").optional(),
+  orgType: Joi.string().valid("Esports Team", "Gaming Company", "Content Studio", "Tournament Organizer", "Sponsor", "Gaming Club/Clan").optional(),
   foundedYear: Joi.number().min(1950).max(new Date().getFullYear()).optional(),
   website: Joi.string().uri().optional().allow(""),
   country: Joi.string().optional(),
   activeGames: Joi.array().items(Joi.string().valid(...gameIds)).optional(),
-  openRoles: Joi.array().items(Joi.string().valid(...playerRoles)).optional(),
+  openRoles: Joi.array().items(Joi.string()).optional(),
+  ownerOrgRole: Joi.string().valid("Owner", "Manager", "Coach", "Recruiter", "Other").optional(),
+  purposes: Joi.array().items(Joi.string()).optional(),
+  isRecruiting: Joi.boolean().optional(),
   socialLinks: Joi.object({
     twitter: Joi.string().allow("").optional(),
     youtube: Joi.string().allow("").optional(),
     instagram: Joi.string().allow("").optional(),
+    discord: Joi.string().allow("").optional(),
   }).optional(),
   recruitmentRegions: Joi.array().items(Joi.string()).optional(),
   recruitmentCriteria: Joi.object({
-    minRank: Joi.string()
-      .valid(
-        "Bronze","Silver","Gold","Platinum",
-        "Diamond","Crown","Ace","Ace Master","Conqueror"
-      )
-      .optional(),
-    roles: Joi.array()
-      .items(
-        Joi.string().valid(...playerRoles)
-      )
-      .optional(),
+    minRank: Joi.string().allow("").optional(),
+    roles: Joi.array().items(Joi.string()).optional(),
     minKD: Joi.number().min(0).optional(),
   }).optional(),
 });
@@ -135,13 +130,23 @@ const recruiterDashboard = asyncHandler(async (req, res) => {
 
   const filter = { isOpenToRecruit: true };
 
-  if (minRank) {
-    const minIndex = rankOrder.indexOf(minRank);
-    const eligibleRanks = rankOrder.slice(minIndex);
-    filter["stats.rank"] = { $in: eligibleRanks };
+  if (org.activeGames?.length) {
+    filter.preferredGames = { $in: org.activeGames };
   }
 
-  if (roles?.length) filter.$or = [{ role: { $in: roles } }, { roles: { $in: roles } }];
+  if (minRank) {
+    const minIndex = rankOrder.indexOf(minRank);
+    if (minIndex !== -1) {
+      const eligibleRanks = rankOrder.slice(minIndex);
+      filter["stats.rank"] = { $in: eligibleRanks };
+    } else {
+      filter["stats.rank"] = { $regex: new RegExp(minRank, "i") };
+    }
+  }
+
+  if (roles?.length) {
+    filter.$or = [{ role: { $in: roles } }, { roles: { $in: roles } }];
+  }
   if (minKD) filter["stats.kd"] = { $gte: minKD };
 
   const players = await PlayerProfile.find(filter)
