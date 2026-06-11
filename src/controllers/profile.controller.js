@@ -18,10 +18,9 @@ const createProfile = asyncHandler(async (req, res) => {
 const updateProfile = asyncHandler(async (req, res) => {
   const profile = await PlayerProfile.findOneAndUpdate(
     { user: req.user._id },
-    { $set: req.body },
-    { new: true, runValidators: true }
+    { $set: req.body, $setOnInsert: { user: req.user._id } },
+    { upsert: true, new: true, runValidators: true }
   );
-  if (!profile) throw new ApiError(404, "Profile not found.");
   return res.status(200).json(new ApiResponse(200, profile, "Profile updated"));
 });
 
