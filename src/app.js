@@ -25,6 +25,9 @@ const searchRoutes = require("./routes/search.routes");
 
 const app = express();
 
+// Enable trust proxy so express-rate-limit can see the real client IP behind Render's load balancer
+app.set("trust proxy", 1);
+
 // --- Security Middlewares ---
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL || "*" }));
@@ -33,7 +36,7 @@ app.use(morgan("dev"));
 // --- Rate Limiting ---
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === "development" ? 10000 : 100, // high threshold for dev/active testing
+  max: process.env.NODE_ENV === "development" ? 10000 : 1000, // increased to 1000 for active testing/usage
   message: "Too many requests, please try again later.",
 });
 app.use("/api", limiter);
